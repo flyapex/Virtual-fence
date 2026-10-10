@@ -4,25 +4,107 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vf-sim-training"
-version = "0.1.0"
+version = "0.2.0"
 description = "Transparent simulation tools for virtual-fence pre-training study planning."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "vf-sim-training contributors"}]
+keywords = [
+    "virtual fence",
+    "cattle",
+    "animal welfare",
+    "agent-based model",
+    "power analysis",
+    "study planning",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Life",
+]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.9", "mypy>=1.11"]
 plots = ["matplotlib>=3.8"]
+
+[project.urls]
+Homepage = "https://github.com/flyapex/Virtual-Fence"
+Repository = "https://github.com/flyapex/Virtual-Fence"
+Issues = "https://github.com/flyapex/Virtual-Fence/issues"
+
+[project.scripts]
+vf-simulate = "vf_training.cli:simulate_main"
+vf-power = "vf_training.cli:power_main"
+vf-play = "vf_training.cli:play_main"
+vf-inspect = "vf_training.cli:inspect_main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+vf_training = ["py.typed"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --strict-markers --strict-config"
 
+[tool.coverage.run]
+branch = true
+source = ["vf_training"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "pragma: no cover",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF", "PT"]
+ignore = [
+    # Formatted code occasionally exceeds the limit only in strings and URLs.
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src", "scripts", "tests"]
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["matplotlib.*"]
+ignore_missing_imports = true

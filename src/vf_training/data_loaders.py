@@ -3,14 +3,18 @@
 The project deliberately does not download study data. Place data obtained from
 the official source in ``data/raw`` and inspect it first. These utilities derive
 headers from the actual file rather than baking unverified schemas into code.
+
+The helpers here return what they find and never print: reporting is the job of
+the ``vf-inspect`` command, which is also available as
+``python scripts/inspect_datasets.py``.
 """
 
 from __future__ import annotations
 
 import csv
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 
 @dataclass(frozen=True)
@@ -53,14 +57,15 @@ CANDIDATE_DATASETS: tuple[DatasetSpec, ...] = (
         "zenodo_dairy_activity_location",
         "Time Series of Dairy Cow Activity and Barn Area Use",
         "https://zenodo.org/records/14886594",
-        "CONFLICT: API says CC BY 4.0; record description says CC BY-NC-ND 4.0",
+        "CC BY 4.0",
         79_918_291,
     ),
     DatasetSpec(
         "zenodo_japanese_black",
         "Japanese Black Beef Cow Behavior Classification Dataset",
         "https://zenodo.org/records/5849025",
-        "CC BY 4.0",
+        # The record contradicts itself; see docs/datasets.md before any reuse.
+        "UNVERIFIED FOR REUSE: Zenodo API reports CC BY 4.0, the record description says CC BY-NC-ND 4.0",
         14_460_415,
     ),
 )
@@ -86,61 +91,62 @@ def _csv_columns(path: Path) -> tuple[str, ...]:
 
 
 def inspect_dataset(path: str | Path) -> tuple[FileInspection, ...]:
-    """Print discovered files and actual CSV headers; never guess a schema.
+    """Describe the files at `path` using what each file actually contains.
 
-    A file path is inspected directly. A directory path is searched recursively.
-    Unsupported file types are still reported so users can decide how to inspect
-    them; this function does not silently discard them.
+    A file path is inspected directly; a directory path is searched recursively.
+    Unsupported file types are still reported, so nothing is silently discarded.
+    Raises ``FileNotFoundError`` when the path does not exist, rather than
+    reporting an empty result that could be mistaken for "no data there".
     """
     root = Path(path)
     if not root.exists():
-        print(f"NOT FOUND: {root}")
-        return ()
-    files: Iterable[Path] = (root,) if root.is_file() else sorted(item for item in root.rglob("*") if item.is_file())
+        raise FileNotFoundError(f"No such file or directory: {root}")
+    candidates: Iterable[Path] = (
+        (root,) if root.is_file() else sorted(item for item in root.rglob("*") if item.is_file())
+    )
+
     inspections: list[FileInspection] = []
-    for file_path in files:
+    for file_path in candidates:
+        size_bytes = file_path.stat().st_size
         if file_path.suffix.lower() == ".csv":
             try:
                 columns = _csv_columns(file_path)
-                note = "CSV header read from local file"
-                print(f"FOUND CSV: {file_path} ({file_path.stat().st_size} bytes); columns: {columns}")
             except (OSError, UnicodeError, ValueError, csv.Error) as error:
                 columns = None
                 note = f"CSV present but header could not be read: {error}"
-                print(f"FOUND CSV WITH READ ERROR: {file_path}; {error}")
+            else:
+                note = "CSV header read from the local file"
         else:
             columns = None
             note = "Present; inspect with a format-specific reader if needed"
-            print(f"FOUND {file_path.suffix or 'file'}: {file_path} ({file_path.stat().st_size} bytes)")
         inspections.append(
             FileInspection(
                 path=file_path,
-                size_bytes=file_path.stat().st_size,
+                size_bytes=size_bytes,
                 columns=columns,
                 note=note,
             )
         )
-    if not inspections:
-        print(f"NO FILES FOUND: {root}")
     return tuple(inspections)
 
 
 def read_csv_rows(path: str | Path, *, limit: int | None = None) -> list[dict[str, str]]:
-    """Read a local CSV using its own header, with a transparent optional limit."""
-    file_path = Path(path)
-    try:
-        with file_path.open("r", encoding="utf-8-sig", newline="") as handle:
-            reader = csv.DictReader(handle)
-            if reader.fieldnames is None:
-                raise ValueError("No header row found")
-            rows: list[dict[str, str]] = []
-            for row_number, row in enumerate(reader, start=1):
-                rows.append(dict(row))
-                if limit is not None and row_number >= limit:
-                    break
-    except (OSError, UnicodeError, csv.Error, ValueError) as error:
-        print(f"CSV LOAD FAILED: {file_path}; {error}")
-        return []
-    print(f"LOADED {len(rows)} row(s) from {file_path}; columns found: {tuple(reader.fieldnames)}")
-    return rows
+    """Read a local CSV using its own header, with a transparent optional limit.
 
+    Returns every row by default. Raises ``FileNotFoundError`` for a missing
+    file and ``ValueError`` for a file without a header row or a limit below one.
+    """
+    if limit is not None and limit < 1:
+        raise ValueError("limit must be at least one when given.")
+    file_path = Path(path)
+    with file_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames
+        if not fieldnames:
+            raise ValueError(f"No header row found in {file_path}")
+        rows: list[dict[str, str]] = []
+        for row_number, row in enumerate(reader, start=1):
+            rows.append(dict(row))
+            if limit is not None and row_number >= limit:
+                break
+    return rows

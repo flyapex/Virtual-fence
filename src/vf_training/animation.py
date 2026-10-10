@@ -203,7 +203,7 @@ def animate_simulation(
     save: str | Path | None = None,
     still: str | Path | None = None,
     still_at: float = 0.5,
-    max_export_frames: int = 400,
+    max_export_frames: int = 240,
     dpi: int = 110,
     title: str | None = None,
 ) -> Path | None:
@@ -224,7 +224,9 @@ def animate_simulation(
     save_path = Path(save) if save is not None else None
     still_path = Path(still) if still is not None else None
     if save_path is not None and save_path.suffix.lower() != ".gif":
-        raise ValueError("Animation export writes .gif; use the figure scripts for png, svg or pdf.")
+        raise ValueError(
+            "Animation export writes .gif; use the figure scripts for png, svg or pdf."
+        )
     if still_path is not None and still_path.suffix.lower().lstrip(".") not in FORMATS:
         raise ValueError(f"A still must end with one of {FORMATS}, got {still_path.name!r}.")
 
@@ -246,8 +248,23 @@ def animate_simulation(
     field.axvspan(FENCE_X, FIELD_WIDTH, color="#f4d4d4", zorder=0)
     field.axvline(FENCE_X, color="#8b1a1a", linewidth=2, linestyle="--", zorder=1)
     field.axvline(APPROACH_X, color="0.55", linewidth=1, linestyle=":", zorder=1)
-    field.text(APPROACH_X - 0.15, FIELD_HEIGHT - 0.2, "audio cue zone", fontsize=7, color="0.45", ha="right", va="top")
-    field.text(FENCE_X + 0.15, FIELD_HEIGHT - 0.2, "beyond the boundary", fontsize=7, color="#8b1a1a", va="top")
+    field.text(
+        APPROACH_X - 0.15,
+        FIELD_HEIGHT - 0.2,
+        "audio cue zone",
+        fontsize=7,
+        color="0.45",
+        ha="right",
+        va="top",
+    )
+    field.text(
+        FENCE_X + 0.15,
+        FIELD_HEIGHT - 0.2,
+        "beyond the boundary",
+        fontsize=7,
+        color="#8b1a1a",
+        va="top",
+    )
     field.set_yticks([])
     field.set_xticks([])
     field.set_title("Schematic field: assumed animals meeting the boundary", fontsize=11)
@@ -255,15 +272,35 @@ def animate_simulation(
     markers = []
     labels = []
     for animal_id in range(n_animals):
-        marker, = field.plot([], [], marker="o", linestyle="none", markersize=13, color=ANIMAL_COLOURS["grazing"])
+        (marker,) = field.plot(
+            [], [], marker="o", linestyle="none", markersize=13, color=ANIMAL_COLOURS["grazing"]
+        )
         markers.append(marker)
         labels.append(
-            field.text(0.0, 0.0, str(animal_id + 1), ha="center", va="center", fontsize=7, color="white", zorder=5)
+            field.text(
+                0.0,
+                0.0,
+                str(animal_id + 1),
+                ha="center",
+                va="center",
+                fontsize=7,
+                color="white",
+                zorder=5,
+            )
         )
-    pulse_marker, = field.plot([], [], marker="X", linestyle="none", markersize=17, color="#d62728", zorder=4)
-    response_ring, = field.plot(
-        [], [], marker="o", linestyle="none", markerfacecolor="none",
-        markeredgecolor="#2ca02c", markeredgewidth=2, markersize=24, zorder=3,
+    (pulse_marker,) = field.plot(
+        [], [], marker="X", linestyle="none", markersize=17, color="#d62728", zorder=4
+    )
+    (response_ring,) = field.plot(
+        [],
+        [],
+        marker="o",
+        linestyle="none",
+        markerfacecolor="none",
+        markeredgecolor="#2ca02c",
+        markeredgewidth=2,
+        markersize=24,
+        zorder=3,
     )
     status = field.text(0.05, FIELD_HEIGHT - 0.2, "", fontsize=9, va="top", family="monospace")
     field.legend(
@@ -321,7 +358,7 @@ def animate_simulation(
 
     if still_path is not None:
         still_path.parent.mkdir(parents=True, exist_ok=True)
-        update(int(round(still_at * (len(frames) - 1))))
+        update(round(still_at * (len(frames) - 1)))
         figure.savefig(still_path, dpi=dpi)
         figure.clear()
         plt.close(figure)
@@ -337,7 +374,9 @@ def animate_simulation(
 
     if save_path is not None:
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        animation.save(save_path, writer=PillowWriter(fps=max(1, round(1000.0 / interval_ms))), dpi=dpi)
+        animation.save(
+            save_path, writer=PillowWriter(fps=max(1, round(1000.0 / interval_ms))), dpi=dpi
+        )
         figure.clear()
         plt.close(figure)
         return save_path

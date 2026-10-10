@@ -1,0 +1,21 @@
+# Checks that run before a commit. mypy runs in CI rather than here, so this
+# file stays installable without pinning a type-checker mirror.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=3000"] # docs/figures/playback.gif is about 1.6 MB
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.0
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format

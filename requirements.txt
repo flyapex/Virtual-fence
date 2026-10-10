@@ -1,2 +1,4 @@
+# Test-only convenience file. The supported install is:
+#   python -m pip install -e ".[plots,dev]"
+# which brings the figures extra and the full development tool set.
 pytest>=8.0
-

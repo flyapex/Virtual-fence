@@ -45,7 +45,10 @@ be frozen in the preregistration before outcome data are examined.
 
 - Audio-only success ratio: audio-only responses / all boundary interactions.
 - Time-to-criterion: first of a preregistered run of days achieving a specified
-  response rate.
+  response rate. The planning default in the code is 80% for two consecutive
+  days, and the reported value is the **first day of that run**, so the criterion
+  is met on the reported day + 1. Both numbers are conventions to freeze in the
+  preregistration, not measurements.
 - Escapes/non-containment events, re-entry, latency to turn and distance to
   boundary, if device logs permit.
 - Welfare indicators defined with the veterinarian before trial start (for
@@ -64,6 +67,12 @@ effects, an offset for animal exposure, and group as a random effect. Include
 animal nested within group only when the model is estimable; with the planned
 small number of groups, report cluster-level sensitivity analyses/permutation
 or randomisation-based comparisons as the more transparent primary check.
+
+**Implementation status.** The planning code implements only the group-label
+permutation contrast. It does **not** fit the mixed model above, so the power
+numbers it reports are power for the permutation test, not for the primary
+analysis described in this document. Any power claim taken from this repository
+must say which of the two it refers to.
 
 Report effect sizes and confidence intervals, not only p-values. Define missing
 collar data, collar failures, animal withdrawal, escape handling, and any

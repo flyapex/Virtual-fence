@@ -1,14 +1,15 @@
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from vf_training.animation import (
     APPROACH_X,
+    FENCE_X,
     FIELD_HEIGHT,
     FIELD_WIDTH,
-    FENCE_X,
-    animation_frames,
     animate_simulation,
+    animation_frames,
     home_positions,
 )
 from vf_training.model import SimulationParameters, SimulationResult, simulate_group
@@ -16,7 +17,7 @@ from vf_training.model import SimulationParameters, SimulationResult, simulate_g
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
 
-def _small_result(**overrides: object) -> SimulationResult:
+def _small_result(**overrides: Any) -> SimulationResult:
     parameters = SimulationParameters(n_animals=3, days=2, **overrides)
     return simulate_group("simulation", tau=0.6, parameters=parameters, seed=13)
 
@@ -27,9 +28,10 @@ def _requires_matplotlib() -> None:
 
 def test_home_positions_stay_inside_the_field() -> None:
     homes = home_positions(5)
+
     assert len(homes) == 5
     assert all(0.0 < x < APPROACH_X and 0.0 < y < FIELD_HEIGHT for x, y in homes)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="At least one animal"):
         home_positions(0)
 
 
@@ -77,7 +79,8 @@ def test_decision_frames_show_the_right_outcome_at_the_fence() -> None:
             assert frame.event.escaped
             assert pose.x > FENCE_X
 
-    assert seen_pulse and seen_response
+    assert seen_pulse
+    assert seen_response
 
 
 def test_every_pose_stays_inside_the_drawn_field() -> None:
@@ -97,9 +100,9 @@ def test_frames_reject_an_empty_or_too_coarse_animation() -> None:
         events=(),
         final_associative_strengths=(0.0,),
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="no boundary interactions"):
         animation_frames(empty)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="at least three steps"):
         animation_frames(_small_result(), steps_per_interaction=2)
 
 
@@ -113,18 +116,24 @@ def test_gif_and_still_export_write_real_files(tmp_path: Path) -> None:
         seed=3,
     )
 
-    gif = animate_simulation(result, steps_per_interaction=3, interval_ms=100, dpi=60, save=tmp_path / "play.gif")
-    still = animate_simulation(result, steps_per_interaction=3, dpi=60, still=tmp_path / "frame.png", still_at=0.9)
+    gif = animate_simulation(
+        result, steps_per_interaction=3, interval_ms=100, dpi=60, save=tmp_path / "play.gif"
+    )
+    still = animate_simulation(
+        result, steps_per_interaction=3, dpi=60, still=tmp_path / "frame.png", still_at=0.9
+    )
 
-    assert gif is not None and gif.read_bytes()[:4] == b"GIF8"
-    assert still is not None and still.read_bytes().startswith(PNG_MAGIC)
+    assert gif is not None
+    assert gif.read_bytes()[:4] == b"GIF8"
+    assert still is not None
+    assert still.read_bytes().startswith(PNG_MAGIC)
 
 
 def test_export_options_are_validated(tmp_path: Path) -> None:
     result = _small_result()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"writes \.gif"):
         animate_simulation(result, save=tmp_path / "play.mp4")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="either save or still"):
         animate_simulation(result, save=tmp_path / "a.gif", still=tmp_path / "b.png")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="still_at must be between"):
         animate_simulation(result, still=tmp_path / "b.png", still_at=1.5)

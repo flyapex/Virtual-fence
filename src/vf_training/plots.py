@@ -10,19 +10,24 @@ missing. Install it with ``python -m pip install -e ".[plots]"``.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
+from types import ModuleType
+from typing import TYPE_CHECKING
 
 from .metrics import daily_summary
 from .model import Arm, SimulationResult
-from .power import PowerResult
+from .power import PowerResult, minimum_attainable_p
+
+if TYPE_CHECKING:  # pragma: no cover - imported for annotations only
+    from matplotlib.figure import Figure
 
 CAUTION = (
     "SIMULATED PLANNING OUTPUT - every numeric parameter is an unmeasured "
     "assumption, not a measurement."
 )
 
-#: Days covered by the preregistered primary outcome, shaded on day figures.
+#: Days covered by the planned primary outcome, shaded on day figures.
 PRIMARY_WINDOW_DAYS = 3
 
 #: Planning reference line for a power figure. It is a convention, not a target.
@@ -40,7 +45,7 @@ _TAU_STYLES = ("-", "--", ":", "-.")
 _MARKERS = ("o", "s", "^", "D")
 
 
-def _pyplot(*, interactive: bool = False):
+def _pyplot(*, interactive: bool = False) -> ModuleType:
     """Return pyplot, or explain how to install matplotlib.
 
     Files are drawn on the Agg canvas so they work without a display. An
@@ -78,7 +83,7 @@ def _resolved(path: str | Path) -> Path:
     return target
 
 
-def set_window_title(figure, default: str = "vf-sim-training") -> None:
+def set_window_title(figure: Figure, default: str = "vf-sim-training") -> None:
     """Name a figure's window, so an open window is identifiable in the taskbar.
 
     A no-op on the headless Agg canvas, which has no window.
@@ -89,7 +94,7 @@ def set_window_title(figure, default: str = "vf-sim-training") -> None:
         setter(f"{default} - {figure.get_suptitle() or 'figure'}")
 
 
-def _finish(plt, figure, target: Path, dpi: int, *, show: bool) -> Path:
+def _finish(plt: ModuleType, figure: Figure, target: Path, dpi: int, *, show: bool) -> Path:
     """Write the figure, optionally hold it open in a window, then release it."""
     figure.savefig(target, dpi=dpi)
     if show:
@@ -159,7 +164,12 @@ def plot_simulation(
         ("pulses_per_animal_day", "Pulses per animal-day", "pulses / animal-day", None),
         (None, "Cumulative pulses", "pulses", None),
         ("mean_associative_strength_before", "Mean associative strength", "strength", (0.0, 1.05)),
-        ("mean_response_probability", "Mean audio-response probability", "probability", (0.0, 1.05)),
+        (
+            "mean_response_probability",
+            "Mean audio-response probability",
+            "probability",
+            (0.0, 1.05),
+        ),
     )
 
     for panel_index, (axis, (field, panel_title, ylabel, limits)) in enumerate(
@@ -223,8 +233,9 @@ def plot_power_grid(
     """Write a grid figure of estimated power and mean pulse reductions.
 
     One line per transfer assumption (`tau`) against groups per arm. The second
-    panel shows the primary contrast, and the third repeats the descriptive
-    mock-boundary arm that is never part of the primary comparison.
+    panel shows the primary contrast. The third repeats the mock-boundary arm,
+    which under the current model shares the conventional mechanism and is
+    therefore a null by construction, not an evaluated arm.
     With `show`, the figure is written and then held open in a window.
     """
     if not results:
@@ -239,9 +250,27 @@ def plot_power_grid(
     figure, axes = plt.subplots(1, 3, figsize=(13.5, 4.6), layout="constrained")
     required_label = f"primary requirement ({first.required_relative_reduction:.0%})"
     panels = (
-        ("estimated_power", "Estimated power", "rejection probability", POWER_REFERENCE, "80% planning reference"),
-        ("mean_relative_reduction", "Mean simulation reduction", "relative reduction", first.required_relative_reduction, required_label),
-        ("mean_mock_relative_reduction", "Mean mock reduction (descriptive)", "relative reduction", first.required_relative_reduction, f"{required_label}, for scale only"),
+        (
+            "estimated_power",
+            "Estimated power",
+            "rejection probability",
+            POWER_REFERENCE,
+            "80% planning reference",
+        ),
+        (
+            "mean_relative_reduction",
+            "Mean simulation reduction",
+            "relative reduction",
+            first.required_relative_reduction,
+            required_label,
+        ),
+        (
+            "mean_mock_relative_reduction",
+            "Mean mock reduction (null by construction)",
+            "relative reduction",
+            first.required_relative_reduction,
+            f"{required_label}, for scale only",
+        ),
     )
 
     for axis, (field, panel_title, ylabel, reference, reference_label) in zip(
@@ -276,10 +305,17 @@ def plot_power_grid(
 
     axes[0].set_ylim(-0.03, 1.05)
     axes[0].legend(frameon=False, fontsize=8, title="transfer assumption")
+    smallest = min(results, key=lambda result: result.scenario.groups_per_arm).scenario
+    floor = minimum_attainable_p(smallest)
     note = (
         f"Success needs p < {first.alpha:g} and at least a "
         f"{first.required_relative_reduction:.0%} pulse reduction in days 1-{first.primary_days}. "
-        f"With 3 groups per arm, a two-sided exact permutation test has minimum p=0.10."
+        f"At {smallest.groups_per_arm} groups per arm the smallest attainable two-sided p is "
+        f"{floor:.3f}:\n"
+        f"a zero there is arithmetic, so those rows cannot speak to effect size at all, while other "
+        f"zeros mean the simulated reduction fell short of {first.required_relative_reduction:.0%}. "
+        "The mock-boundary arm shares the conventional mechanism, so its panel is a null by "
+        "construction."
     )
     figure.suptitle(title or "Simulated power grid, group-level primary contrast")
     figure.supxlabel(f"{CAUTION}\n{note}", fontsize=8, color="0.35")

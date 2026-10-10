@@ -18,7 +18,8 @@
 7. **Conclusions and recommendations** — bounded conclusions, implementation
    implications and research priorities.
 
-Appendices: search strings/log and PRISMA flow, ethics materials, detailed
+Appendices: search strings/log and PRISMA flow (**to be produced after
+screening**; no search has been executed yet), ethics materials, detailed
 protocol, collar parameters where permitted, code/data dictionary, additional
 models and reproducibility instructions.
 

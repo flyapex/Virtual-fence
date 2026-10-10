@@ -34,9 +34,20 @@ this repository; `data/raw/` is ignored by Git.
 ## Loader use
 
 ```powershell
-python -c "from vf_training.data_loaders import inspect_dataset; inspect_dataset('data/raw')"
+vf-inspect                         # inspect data/raw
+vf-inspect --candidates            # list the records above, with licences
+vf-inspect path\to\file.csv --rows 3
 ```
 
-The command prints every file it finds and actual CSV headers. It returns an
-empty result with a `NOT FOUND` message for a missing path rather than guessing
-file names or columns.
+```python
+from vf_training.data_loaders import inspect_dataset, read_csv_rows
+
+inspections = inspect_dataset("data/raw")  # returns what is actually there
+rows = read_csv_rows("data/raw/example.csv", limit=5)
+```
+
+The functions return structured results and never print, so they are safe to use
+in a script or a test. `vf-inspect` is the human-facing report: it prints every
+file it finds and the actual CSV headers. A missing path raises
+`FileNotFoundError`, and `vf-inspect` turns that into a `NOT FOUND` message with
+exit code 2 rather than guessing file names or columns.

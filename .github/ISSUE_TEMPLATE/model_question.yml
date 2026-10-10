@@ -1,0 +1,33 @@
+name: Model or assumption question
+description: Question about a behavioural assumption, an outcome definition or a statistical choice
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Questions about assumptions are the most useful kind here. If your
+        question implies a change to the model, please say which assumption in
+        `docs/study_design.md` should change and why.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to decide, and what is unclear?
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Where it lives
+      description: The file, function or parameter the question is about.
+      placeholder: src/vf_training/power.py, required_relative_reduction
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any command, output or figure that prompted the question.
+      render: text
+    validations:
+      required: false

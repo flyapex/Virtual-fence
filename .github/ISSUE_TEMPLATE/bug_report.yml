@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in the simulation, figures or command line does not work as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project reports **simulated planning numbers under unmeasured
+        assumptions**, not measured results. Please include the exact command and
+        the seed so the run can be reproduced.
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command you ran, including flags and seed.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The full output, including any traceback.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Python version, operating system, and which extras you installed.
+      placeholder: Python 3.12 on Windows 11, installed with pip install -e ".[plots,dev]"
+    validations:
+      required: true
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Acknowledgement
+      options:
+        - label: I understand this model reports simulated planning outputs under unmeasured assumptions.
+          required: true

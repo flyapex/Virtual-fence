@@ -6,9 +6,9 @@ Every value in :class:`SimulationParameters` is an explicit ASSUMPTION.
 
 from __future__ import annotations
 
+import random
 from collections import deque
 from dataclasses import dataclass
-import random
 from typing import Literal
 
 Arm = Literal["conventional", "simulation", "mock_boundary"]
@@ -25,7 +25,9 @@ class SimulationParameters:
     pulse outcome has magnitude one. ASSUMPTION: an animal meets the boundary
     `interactions_per_animal_per_day` times each day. ASSUMPTION: a successful
     response to audio alone avoids a pulse. ASSUMPTION: a non-response receives
-    a pulse and may escape with `escape_probability_after_nonresponse`.
+    a pulse and may escape with `escape_probability_after_nonresponse`. An escape
+    is recorded for reporting only: it does not remove the animal from later
+    interactions and never enters the primary outcome.
 
     The simulated and mock environments never deliver real electric pulses in
     this model. `simulated_pretraining_trials` represents an unmeasured virtual
@@ -72,7 +74,7 @@ class SimulationParameters:
 
 @dataclass(frozen=True)
 class Interaction:
-    """One encounter with the real virtual-fence boundary."""
+    """One simulated encounter with the virtual-fence boundary."""
 
     group_id: str
     arm: Arm
@@ -108,9 +110,7 @@ def pretraining_strength(parameters: SimulationParameters) -> float:
     return 1.0 - (1.0 - parameters.learning_rate) ** parameters.simulated_pretraining_trials
 
 
-def initial_associative_strength(
-    arm: Arm, tau: float, parameters: SimulationParameters
-) -> float:
+def initial_associative_strength(arm: Arm, tau: float, parameters: SimulationParameters) -> float:
     """Set real-context association at the start of training for an arm."""
     if not 0.0 <= tau <= 1.0:
         raise ValueError("tau must be between 0 and 1.")
@@ -209,7 +209,8 @@ def simulate_group(
 ) -> SimulationResult:
     """Simulate a single group and retain all events for detailed metrics.
 
-    The animal order is shuffled each day, but all stochastic decisions use the
+    The animal order is shuffled before every interaction round, but all
+    stochastic decisions use the
     local seeded generator, so identical inputs reproduce identical histories.
     """
     parameters = parameters or SimulationParameters()
@@ -255,4 +256,3 @@ def simulate_group_pulse_rate(
         record_events=False,
     )
     return pulses / (parameters.n_animals * parameters.days)
-

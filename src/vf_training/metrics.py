@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from math import nan
 from statistics import fmean
-from typing import Iterable
 
 from .model import Interaction, SimulationResult
 
@@ -82,9 +82,10 @@ def daily_summary(
 ) -> tuple[DaySummary, ...]:
     """Aggregate a group's events by training day, ordered by day.
 
-    `pulses_per_animal_day` matches the group-level analysis unit used by the
-    power module, so a figure drawn from this summary and the printed pulse rate
-    describe the same quantity. Days without events are absent rather than zero.
+    `pulses_per_animal_day` uses the same animal-day denominator as the
+    group-level outcome in the power module, but not the same window: this field
+    covers one day, while the printed rate pools days 1-3. Days without events
+    are absent rather than zero.
     """
     daily: dict[int, list[Interaction]] = defaultdict(list)
     for event in _events(source):
@@ -110,9 +111,7 @@ def daily_summary(
                 mean_associative_strength_before=fmean(
                     event.associative_strength_before for event in events
                 ),
-                mean_response_probability=fmean(
-                    event.response_probability for event in events
-                ),
+                mean_response_probability=fmean(event.response_probability for event in events),
             )
         )
     return tuple(summaries)
@@ -137,10 +136,12 @@ def time_to_criterion(
     criterion: float = 0.80,
     consecutive_days: int = 2,
 ) -> int | None:
-    """Return first day meeting a daily success criterion for consecutive days.
+    """Return the first day of the run that meets a daily success criterion.
 
-    The definition is a planning convention. A final preregistration should set
-    the criterion before experimental data are collected.
+    This is the first day of the qualifying run, not the day the criterion is
+    completed: with `consecutive_days=2`, the criterion is met on the returned
+    day + 1. The definition is a planning convention, and a final preregistration
+    should set the criterion before experimental data are collected.
     """
     if not 0.0 <= criterion <= 1.0 or consecutive_days < 1:
         raise ValueError("criterion must be in [0, 1] and consecutive_days must be positive.")
@@ -178,4 +179,3 @@ def group_pulse_rate(
         return nan
     animal_days = {(event.animal_id, event.day) for event in events}
     return sum(event.pulse_delivered for event in events) / len(animal_days)
-

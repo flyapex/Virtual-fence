@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "vf-sim-training: planning simulations for virtual-fence pre-training in cattle"
+abstract: >-
+  An agent-based planning model of cattle meeting a virtual-fence boundary, with
+  group-level Monte Carlo power calculations. It estimates, under explicitly
+  stated and unmeasured assumptions, whether pre-training in a virtual
+  environment could reduce electric-pulse exposure during the first three days of
+  real virtual-fence training, and how many groups such a study would need. It
+  is not evidence about animal learning, welfare or transfer.
+type: software
+version: "0.2.0"
+date-released: "2026-10-10"
+license: MIT
+repository-code: "https://github.com/flyapex/Virtual-Fence"
+keywords:
+  - virtual fencing
+  - cattle
+  - animal welfare
+  - agent-based simulation
+  - power analysis
+  - study planning
+authors:
+  # TODO: replace with the name this work should be cited under. The GitHub
+  # handle is used as a placeholder so the file stays valid until then.
+  - name: "flyapex"
+    website: "https://github.com/flyapex"

@@ -5,17 +5,69 @@ on:
   pull_request:
 
 jobs:
-  pytest:
+  lint:
+    name: lint, format and types
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install project, optional figure extra, and test dependency
+      - name: Install project with figures and development tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -e ".[plots]"
-      - name: Run tests
-        run: pytest
+          python -m pip install -e ".[plots,dev]"
+      - name: Lint
+        run: python -m ruff check .
+      - name: Check formatting
+        run: python -m ruff format --check .
+      - name: Type check
+        run: python -m mypy
+
+  test:
+    name: tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install project with the figures extra
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[plots,dev]"
+      - name: Run tests with coverage
+        run: |
+          python -m pytest --cov=vf_training --cov-report=term-missing \
+            --cov-report=xml --cov-fail-under=85
+      - name: Upload coverage
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: error
+
+  build:
+    name: package build and console commands
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build a distribution
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      - name: Install the wheel and run the installed commands
+        run: |
+          python -m pip install dist/*.whl
+          vf-simulate --arm simulation --tau 0.6 --animals 2 --days 2
+          vf-power --groups-per-arm 4 --taus 1 --replications 2 --animals-per-group 2
+          vf-inspect --candidates
+          vf-play --help
