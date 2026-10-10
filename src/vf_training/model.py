@@ -138,21 +138,16 @@ def _response_probability(
     return max(0.0, min(1.0, probability))
 
 
-def simulate_group(
+def _run_simulation(
     arm: Arm,
     *,
-    tau: float = 0.0,
-    parameters: SimulationParameters | None = None,
-    group_id: str = "group-1",
-    seed: int = 20261010,
-) -> SimulationResult:
-    """Simulate a single group under one arm with a fixed pseudo-random seed.
-
-    The animal order is shuffled each day, but all stochastic decisions use the
-    local seeded generator, so identical inputs reproduce identical histories.
-    """
-    parameters = parameters or SimulationParameters()
-    parameters.validate()
+    tau: float,
+    parameters: SimulationParameters,
+    group_id: str,
+    seed: int,
+    record_events: bool,
+) -> tuple[list[Interaction], tuple[float, ...], int]:
+    """Run the shared state update loop, optionally retaining event history."""
     if arm != "simulation" and tau != 0.0:
         raise ValueError("tau is only meaningful for the simulation arm.")
 
@@ -161,6 +156,7 @@ def simulate_group(
     history: deque[set[int]] = deque(maxlen=parameters.social_memory_interactions)
     events: list[Interaction] = []
     interaction_number = 0
+    pulses = 0
 
     for day in range(1, parameters.days + 1):
         animal_order = list(range(parameters.n_animals))
@@ -173,33 +169,87 @@ def simulate_group(
                 probability = _response_probability(strength_before, social_fraction, parameters)
                 audio_only_response = rng.random() < probability
                 pulse_delivered = not audio_only_response
+                pulses += int(pulse_delivered)
                 escaped = pulse_delivered and (
                     rng.random() < parameters.escape_probability_after_nonresponse
                 )
                 if pulse_delivered:
                     strengths[animal_id] += parameters.learning_rate * (1.0 - strengths[animal_id])
                 history.append({animal_id} if audio_only_response else set())
-                events.append(
-                    Interaction(
-                        group_id=group_id,
-                        arm=arm,
-                        day=day,
-                        interaction_number=interaction_number,
-                        animal_id=animal_id,
-                        associative_strength_before=strength_before,
-                        associative_strength_after=strengths[animal_id],
-                        social_response_fraction=social_fraction,
-                        response_probability=probability,
-                        audio_only_response=audio_only_response,
-                        pulse_delivered=pulse_delivered,
-                        escaped=escaped,
+                if record_events:
+                    events.append(
+                        Interaction(
+                            group_id=group_id,
+                            arm=arm,
+                            day=day,
+                            interaction_number=interaction_number,
+                            animal_id=animal_id,
+                            associative_strength_before=strength_before,
+                            associative_strength_after=strengths[animal_id],
+                            social_response_fraction=social_fraction,
+                            response_probability=probability,
+                            audio_only_response=audio_only_response,
+                            pulse_delivered=pulse_delivered,
+                            escaped=escaped,
+                        )
                     )
-                )
+    return events, tuple(strengths), pulses
+
+
+def simulate_group(
+    arm: Arm,
+    *,
+    tau: float = 0.0,
+    parameters: SimulationParameters | None = None,
+    group_id: str = "group-1",
+    seed: int = 20261010,
+) -> SimulationResult:
+    """Simulate a single group and retain all events for detailed metrics.
+
+    The animal order is shuffled each day, but all stochastic decisions use the
+    local seeded generator, so identical inputs reproduce identical histories.
+    """
+    parameters = parameters or SimulationParameters()
+    parameters.validate()
+    events, strengths, _ = _run_simulation(
+        arm,
+        tau=tau,
+        parameters=parameters,
+        group_id=group_id,
+        seed=seed,
+        record_events=True,
+    )
     return SimulationResult(
         group_id=group_id,
         arm=arm,
         tau=tau,
         events=tuple(events),
-        final_associative_strengths=tuple(strengths),
+        final_associative_strengths=strengths,
     )
+
+
+def simulate_group_pulse_rate(
+    arm: Arm,
+    *,
+    tau: float = 0.0,
+    parameters: SimulationParameters | None = None,
+    group_id: str = "group-1",
+    seed: int = 20261010,
+) -> float:
+    """Simulate a group without allocating event objects and return its pulse rate.
+
+    This fast path is mathematically identical to :func:`simulate_group` for
+    pulses. It is used only by the many repetitions of the power calculation.
+    """
+    parameters = parameters or SimulationParameters()
+    parameters.validate()
+    _, _, pulses = _run_simulation(
+        arm,
+        tau=tau,
+        parameters=parameters,
+        group_id=group_id,
+        seed=seed,
+        record_events=False,
+    )
+    return pulses / (parameters.n_animals * parameters.days)
 

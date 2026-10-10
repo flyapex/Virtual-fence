@@ -1,4 +1,10 @@
-from vf_training.model import SimulationParameters, initial_associative_strength, simulate_group
+from vf_training.metrics import group_pulse_rate
+from vf_training.model import (
+    SimulationParameters,
+    initial_associative_strength,
+    simulate_group,
+    simulate_group_pulse_rate,
+)
 
 
 def test_simulation_transfer_sets_higher_initial_association() -> None:
@@ -28,4 +34,11 @@ def test_simulation_is_reproducible_with_fixed_seed() -> None:
     first = simulate_group("simulation", tau=0.6, seed=44)
     second = simulate_group("simulation", tau=0.6, seed=44)
     assert first == second
+
+
+def test_fast_pulse_rate_matches_recorded_history() -> None:
+    parameters = SimulationParameters(days=3)
+    recorded = simulate_group("simulation", tau=0.6, parameters=parameters, seed=44)
+    fast_rate = simulate_group_pulse_rate("simulation", tau=0.6, parameters=parameters, seed=44)
+    assert fast_rate == group_pulse_rate(recorded, through_day=3)
 

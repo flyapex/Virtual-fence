@@ -10,8 +10,7 @@ import random
 from statistics import fmean
 from typing import Iterable
 
-from .metrics import group_pulse_rate
-from .model import Arm, SimulationParameters, simulate_group
+from .model import Arm, SimulationParameters, simulate_group_pulse_rate
 
 
 @dataclass(frozen=True)
@@ -104,14 +103,15 @@ def _simulate_arm_outcomes(
     tau = scenario.tau if arm == "simulation" else 0.0
     outcomes: list[float] = []
     for group_number in range(1, scenario.groups_per_arm + 1):
-        result = simulate_group(
+        outcomes.append(
+            simulate_group_pulse_rate(
             arm,
             tau=tau,
             parameters=parameters,
             group_id=f"{arm}-{group_number}",
             seed=rng.randrange(0, 2**31),
+            )
         )
-        outcomes.append(group_pulse_rate(result, through_day=scenario.primary_days))
     return tuple(outcomes)
 
 
