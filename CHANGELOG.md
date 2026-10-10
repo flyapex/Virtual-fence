@@ -11,6 +11,12 @@ and no release changes the fact that all model parameters are assumptions.
 
 ### Added
 
+- `vf-calibrate` / `scripts/run_calibration.py`: fits the behavioural parameters
+  to real animal-day audio and pulse records. A USDA-schema loader that reports
+  the columns it matched and refuses to guess, encounter and escape rates taken
+  from the data instead of fitted, a grid fit over four parameters, marginal
+  identifiability profiles, and `--self-test` to verify the pipeline on
+  model-generated pseudo-data without any download.
 - `vf-sensitivity` / `scripts/run_sensitivity_analysis.py`: Morris screening of
   the seven assumed behavioural parameters against the planned pulse reduction,
   with `mu`, `mu_star` and `sigma` per assumption, a two-panel figure, and an

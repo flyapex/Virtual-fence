@@ -100,7 +100,7 @@ Severity: **B** = blocks any Q1 submission, **M** = major revision risk,
 | # | Gap | Sev | Owner | Effort | Notes |
 | --- | --- | --- | --- | --- | --- |
 | G1 | No measured data in `data/raw` | B | you | Download, minutes | The USDA record (CC0 1.0, DOI 10.15482/USDA.ADC/30888611) contains per-animal `No. Audios` and `No. Pulses`, which is exactly the outcome structure this model needs |
-| G2 | No calibration code | B | me | Days | Fit alpha, baseline and response weights to observed pulse/audio rates; report fit quality and identifiability |
+| G2 | ~~No calibration code~~ **CLOSED 2026-10-10** | — | done | `vf-calibrate`: USDA-schema loader, grid fit with measured encounter and escape rates, marginal identifiability profiles, and a self-test that recovers model-generated pseudo-data before real data are needed. Waiting on G1 to run for real |
 | G3 | ~~No sensitivity analysis~~ **CLOSED 2026-10-10** | — | done | `vf-sensitivity`: Morris screening over seven assumptions, 2 s at defaults. Result: transfer (`tau`) dominates at `mu_star` 0.431 versus 0.155 or less for everything else. Global variance decomposition and design-parameter screening remain open |
 | G4 | Literature review not executed | B | you (+me to seed) | Week | Seven frozen strings exist; run them, screen, record counts, verify the 6 unverified bib entries |
 | G5 | Power for the wrong test | M | me | Days | Implement group-random-effect count-model power (simulate, fit, reject) alongside the permutation contrast |

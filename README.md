@@ -54,6 +54,7 @@ Installing the package provides four commands, which also run from `scripts/`:
 | `vf-power` | `scripts/run_power_analysis.py` | Power grid over groups per arm and transfer assumptions |
 | `vf-play` | `scripts/show_simulation.py` | Animated playback of one group, or `--live` to tune it as it runs |
 | `vf-sensitivity` | `scripts/run_sensitivity_analysis.py` | Morris screening: which assumptions actually move the answer |
+| `vf-calibrate` | `scripts/run_calibration.py` | Fit the behavioural parameters to real audio/pulse records |
 | `vf-inspect` | `scripts/inspect_datasets.py` | Candidate dataset metadata and local file inspection |
 
 ```powershell
@@ -199,6 +200,34 @@ much pre-trained association transfers to the real collar. Calibration and
 elicitation effort belongs there first; the remaining assumptions move the answer
 by a fifth as much or less. Elementary effects are sensitivity measures, not
 causal claims and not parameter estimates.
+
+## Calibrating against real records
+
+Everything above runs on assumptions. `vf-calibrate` is how a measured dataset
+replaces some of them.
+
+```powershell
+vf-calibrate --self-test     # verifies the pipeline on model-generated data, no download needed
+vf-calibrate --data data/raw # fits to real animal-day audio/pulse records
+```
+
+The loader maps a documented USDA column set (`No. Audios`, `No. Pulses`,
+`Neckband ID`, a day or timestamp column) onto the quantities this model
+produces. It searches every CSV under the path, reports which columns it matched,
+and refuses to guess when it cannot find them. Records are summed per animal-day;
+ISO timestamps are numbered from the earliest date present.
+
+The fit is a grid search over `learning_rate`, `baseline_response_probability`,
+`associative_response_weight` and `social_response_weight`, minimising a
+scale-free distance between the observed and simulated per-day profiles. Two
+parameters are **measured rather than fitted** — encounters per animal-day and the
+escape rate — because the records state them directly.
+
+The report includes a marginal profile per parameter, so non-identifiability is
+visible instead of hidden behind a best value. In the self-test the day-level
+profile is reproduced closely while four different parameter sets fit almost
+equally well: the data constrain the behaviour, not the individual constants.
+That is a finding to report, not a bug to fix.
 
 ## Known limitations
 
