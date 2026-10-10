@@ -45,6 +45,7 @@ Issues = "https://github.com/flyapex/Virtual-Fence/issues"
 vf-simulate = "vf_training.cli:simulate_main"
 vf-power = "vf_training.cli:power_main"
 vf-play = "vf_training.cli:play_main"
+vf-sensitivity = "vf_training.cli:sensitivity_main"
 vf-inspect = "vf_training.cli:inspect_main"
 
 [tool.setuptools]

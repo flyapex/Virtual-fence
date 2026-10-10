@@ -9,6 +9,18 @@ and no release changes the fact that all model parameters are assumptions.
 
 ## [Unreleased]
 
+### Added
+
+- `vf-sensitivity` / `scripts/run_sensitivity_analysis.py`: Morris screening of
+  the seven assumed behavioural parameters against the planned pulse reduction,
+  with `mu`, `mu_star` and `sigma` per assumption, a two-panel figure, and an
+  injectable target so the screening itself is tested without the model. At the
+  defaults, `tau` dominates the answer (`mu_star` 0.431 versus 0.155 or less).
+- `docs/publication_readiness.md`: an honest audit of what this repository can
+  and cannot support for a journal submission, with a gap register and four
+  routes (calibrated design analysis, empirical trial, software paper, submit
+  as-is).
+
 ## [0.2.0] - 2026-10-10
 
 ### Added

@@ -53,6 +53,7 @@ Installing the package provides four commands, which also run from `scripts/`:
 | `vf-simulate` | `scripts/run_simulation.py` | One group, one arm: metrics, optionally a figure |
 | `vf-power` | `scripts/run_power_analysis.py` | Power grid over groups per arm and transfer assumptions |
 | `vf-play` | `scripts/show_simulation.py` | Animated playback of one group, or `--live` to tune it as it runs |
+| `vf-sensitivity` | `scripts/run_sensitivity_analysis.py` | Morris screening: which assumptions actually move the answer |
 | `vf-inspect` | `scripts/inspect_datasets.py` | Candidate dataset metadata and local file inspection |
 
 ```powershell
@@ -167,6 +168,38 @@ The seed is shown on the panel, so a run you liked can be reproduced exactly wit
 cannot open a window and points at `--gif` and `--still` instead of failing
 silently.
 
+## Which assumptions actually matter
+
+```powershell
+vf-sensitivity --plot          # 2 seconds at the defaults
+```
+
+`vf-sensitivity` runs a [Morris screening](https://doi.org/10.1021/ie00019a005)
+over the behavioural assumptions, using the [ADEMP](https://onlinelibrary.wiley.com/doi/full/10.1002%2Fsim.8086)
+view of a simulation study. It reports each assumption's influence on the planned
+pulse reduction (`mu_star`) and how much that influence varies along different
+paths (`sigma`), which is where non-linearity or interaction shows up.
+
+![Morris screening of the assumed parameters](docs/figures/screening.png)
+
+At the defaults, the ranking is unambiguous:
+
+| Assumption | Influence (`mu_star`) |
+| --- | --- |
+| `tau` (transfer of pre-training) | **0.431** |
+| `social_response_weight` | 0.155 |
+| `associative_response_weight` | 0.137 |
+| `learning_rate` | 0.088 |
+| `escape_probability_after_nonresponse` | 0.067 |
+| `baseline_response_probability` | 0.061 |
+| `interactions_per_animal_per_day` | 0.052 |
+
+The planning answer is dominated by the one parameter nobody has measured — how
+much pre-trained association transfers to the real collar. Calibration and
+elicitation effort belongs there first; the remaining assumptions move the answer
+by a fifth as much or less. Elementary effects are sensitivity measures, not
+causal claims and not parameter estimates.
+
 ## Known limitations
 
 These are properties of the current code, not of the study design. Read them
@@ -187,9 +220,10 @@ before quoting any number from this repository.
   interactions in a 5-animal group, the social fraction is 1.0 for most of a run,
   so `social_response_weight` acts closer to a constant offset than to dynamic
   facilitation.
-- **The sensitivity analysis is not implemented.** The design documents call for
-  varying the behavioural assumptions; `vf-power` currently varies only groups
-  per arm and `tau`.
+- **The sensitivity analysis covers the behavioural assumptions**, but only via
+  one-at-a-time Morris screening on the mean reduction; it does not screen the
+  trial-design parameters, and it is not a variance decomposition. See
+  `vf-sensitivity --help` for the effort controls.
 - **No calibration workflow.** The candidate datasets are documented and can be
   inspected with `vf-inspect`, but nothing yet fits model parameters to them.
 - **Nothing is preregistered yet.** The 30% target, the days 1-3 window and the

@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 from .metrics import daily_summary
 from .model import Arm, SimulationResult
 from .power import PowerResult, minimum_attainable_p
+from .sensitivity import ScreeningResult
 
 if TYPE_CHECKING:  # pragma: no cover - imported for annotations only
     from matplotlib.figure import Figure
@@ -320,4 +321,67 @@ def plot_power_grid(
     )
     figure.suptitle(title or "Simulated power grid, group-level primary contrast")
     figure.supxlabel(f"{CAUTION}\n{note}", fontsize=8, color="0.35")
+    return _finish(plt, figure, target, dpi, show=show)
+
+
+def plot_screening(
+    results: Sequence[ScreeningResult],
+    *,
+    path: str | Path,
+    dpi: int = 150,
+    show: bool = False,
+    title: str | None = None,
+) -> Path:
+    """Write a two-panel Morris screening figure.
+
+    The left panel ranks assumptions by influence (`mu_star`). The right panel
+    separates a large but steady influence (low `sigma`) from one whose effect
+    changes size or sign along different paths (high `sigma`), which is where
+    non-linearity or interaction between assumptions appears.
+    """
+    if not results:
+        raise ValueError("At least one screening result is required.")
+
+    plt = _pyplot(interactive=show)
+    target = _resolved(path)
+    ordered = sorted(results, key=lambda item: item.mu_star)
+    positions = list(range(len(ordered)))
+
+    figure, (bars_axis, scatter_axis) = plt.subplots(
+        1, 2, figsize=(12.5, 5.4), layout="constrained"
+    )
+    bars_axis.barh(positions, [item.mu_star for item in ordered], height=0.6, color="#1f77b4")
+    bars_axis.set_yticks(positions)
+    bars_axis.set_yticklabels([item.parameter for item in ordered], fontsize=8)
+    bars_axis.set_xlabel("mu_star: influence on mean pulse reduction")
+    bars_axis.set_title("Which assumptions move the answer", fontsize=11)
+    bars_axis.set_xlim(left=0.0)
+    for position, item in zip(positions, ordered, strict=True):
+        bars_axis.text(
+            item.mu_star, position, f" {item.mu_star:.3f}", va="center", fontsize=8, color="0.3"
+        )
+
+    scatter_axis.scatter(
+        [item.mu_star for item in ordered], [item.sigma for item in ordered], color="#d62728"
+    )
+    for index, item in enumerate(ordered):
+        scatter_axis.annotate(
+            item.parameter,
+            (item.mu_star, item.sigma),
+            xytext=(5, 3) if index % 2 == 0 else (5, -9),
+            textcoords="offset points",
+            fontsize=7,
+        )
+    scatter_axis.set_xlabel("mu_star: influence")
+    scatter_axis.set_ylabel("sigma: variation of that influence")
+    scatter_axis.set_title("Steady influence versus interaction", fontsize=11)
+    scatter_axis.set_xlim(left=0.0)
+    scatter_axis.set_ylim(bottom=0.0)
+
+    figure.suptitle(title or "Morris screening of assumed behavioural parameters")
+    figure.supxlabel(
+        f"{CAUTION} Elementary effects are sensitivity measures, not parameter estimates.",
+        fontsize=8,
+        color="0.35",
+    )
     return _finish(plt, figure, target, dpi, show=show)

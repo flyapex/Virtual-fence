@@ -69,5 +69,6 @@ jobs:
           python -m pip install dist/*.whl
           vf-simulate --arm simulation --tau 0.6 --animals 2 --days 2
           vf-power --groups-per-arm 4 --taus 1 --replications 2 --animals-per-group 2
+          vf-sensitivity --trajectories 2 --replications 1 --animals-per-group 2
           vf-inspect --candidates
           vf-play --help

@@ -52,12 +52,14 @@ Optional but recommended: `pre-commit install` to run the same checks on commit.
   ```powershell
   vf-simulate --arm simulation --tau 0.60 --plot --compare-arms --outdir docs/figures
   vf-power --replications 500 --plot --outdir docs/figures
+  vf-sensitivity --plot --outdir docs/figures
   vf-play --gif --outdir docs/figures
   vf-play --still --outdir docs/figures
 
   # the committed names are the ones the README embeds
   Move-Item docs/figures/days_arms_tau0.60_seed20261010.png      docs/figures/arms_day_by_day.png
   Move-Item docs/figures/power_grid_rep500_seed20261010.png      docs/figures/power_grid.png
+  Move-Item docs/figures/screening_rep10_traj8_seed20261010.png  docs/figures/screening.png
   Move-Item docs/figures/playback_simulation_tau0.60_seed20261010.gif docs/figures/playback.gif
   Move-Item docs/figures/playback_simulation_tau0.60_seed20261010_still.png docs/figures/playback_still.png
   ```

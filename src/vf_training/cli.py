@@ -21,8 +21,21 @@ from .animation import animate_simulation, animation_frames
 from .data_loaders import CANDIDATE_DATASETS, inspect_dataset, read_csv_rows
 from .metrics import escape_count, group_pulse_rate, success_ratio, time_to_criterion
 from .model import ARM_NAMES, SimulationParameters, SimulationResult, simulate_group
-from .plots import DEFAULT_OUTPUT_DIR, FORMATS, figure_path, plot_power_grid, plot_simulation
+from .plots import (
+    DEFAULT_OUTPUT_DIR,
+    FORMATS,
+    figure_path,
+    plot_power_grid,
+    plot_screening,
+    plot_simulation,
+)
 from .power import format_power_results, minimum_attainable_p, power_grid
+from .sensitivity import (
+    ASSUMPTION_NAMES,
+    ScreeningDesign,
+    format_screening,
+    morris_screening,
+)
 
 SIMULATION_CAUTION = "SIMULATED PLANNING OUTPUT - all numeric parameters are assumptions"
 
@@ -381,6 +394,77 @@ def play_main(argv: Sequence[str] | None = None) -> int:
             )
     except RuntimeError as error:
         raise SystemExit(str(error)) from error
+    return 0
+
+
+def _sensitivity_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="vf-sensitivity",
+        description=(
+            "Screen the assumed behavioural parameters with Morris elementary "
+            "effects: which assumptions actually move the planning answer."
+        ),
+    )
+    parser.add_argument("--groups-per-arm", type=int, default=4, help="Groups per arm, minimum 3.")
+    parser.add_argument("--animals-per-group", type=int, default=5)
+    parser.add_argument(
+        "--replications",
+        type=int,
+        default=10,
+        help="Internal replications per evaluation, to average simulation noise.",
+    )
+    parser.add_argument("--trajectories", type=int, default=8, help="Morris trajectories.")
+    parser.add_argument("--levels", type=int, default=4, help="Grid levels per assumption.")
+    parser.add_argument("--seed", type=int, default=20261010)
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Write a screening figure in addition to the text table.",
+    )
+    _add_figure_options(parser)
+    return parser
+
+
+def sensitivity_main(argv: Sequence[str] | None = None) -> int:
+    """Screen the behavioural assumptions and optionally draw the result."""
+    args = _sensitivity_parser().parse_args(argv)
+    _require_plot(args, "show")
+    design = ScreeningDesign(
+        groups_per_arm=args.groups_per_arm,
+        animals_per_group=args.animals_per_group,
+        internal_replications=args.replications,
+        trajectories=args.trajectories,
+        grid_levels=args.levels,
+        seed=args.seed,
+    )
+    evaluations = (len(ASSUMPTION_NAMES) + 1) * design.trajectories
+    print("MORRIS SCREENING OF ASSUMED PARAMETERS - not measured sensitivities")
+    print(
+        f"{evaluations} evaluations of {design.groups_per_arm} groups/arm, "
+        f"{design.animals_per_group} animals/group, {design.internal_replications} "
+        "replications each."
+    )
+    print("Elementary effects are sensitivity measures, not causal claims or estimates.")
+    results = morris_screening(design)
+    print(format_screening(results))
+
+    if not args.plot:
+        return 0
+
+    stem = f"screening_rep{args.replications}_traj{args.trajectories}_seed{args.seed}"
+    target = figure_path(args.outdir, stem, suffix=args.suffix)
+    if args.show:
+        print(
+            f"writing {target}, then opening a window "
+            "- close the window to return, Ctrl+C to abort",
+            flush=True,
+        )
+    try:
+        written = plot_screening(results, path=target, dpi=args.dpi, show=args.show)
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from error
+    if not args.show:
+        print(f"figure written to {written}")
     return 0
 
 
