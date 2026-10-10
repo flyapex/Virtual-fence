@@ -257,6 +257,19 @@ def _play_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--interval", type=int, default=60, help="Milliseconds per frame.")
     parser.add_argument(
+        "--live",
+        action="store_true",
+        help=(
+            "Open the adjustable window: one field panel with sliders for animals, "
+            "days, tau, learning rate and speed that re-simulate as you change them."
+        ),
+    )
+    parser.add_argument(
+        "--strength",
+        action="store_true",
+        help="With --live, start with the associative-strength bars shown.",
+    )
+    parser.add_argument(
         "--loop", action="store_true", help="Repeat in the window until it is closed."
     )
     parser.add_argument(
@@ -283,7 +296,37 @@ def play_main(argv: Sequence[str] | None = None) -> int:
     args = _play_parser().parse_args(argv)
     if args.gif and args.still:
         raise SystemExit("Choose either --gif or --still, not both.")
+    if args.live and (args.gif or args.still):
+        raise SystemExit("--live opens a window; drop --gif and --still.")
+    if args.strength and not args.live:
+        raise SystemExit("--strength only affects the adjustable window; add --live.")
     tau = args.tau if args.arm == "simulation" else 0.0
+
+    if args.live:
+        from .live import LiveControls, play_live
+
+        controls = LiveControls(
+            arm=args.arm,
+            tau=tau,
+            animals=args.animals,
+            days=args.days,
+            steps=args.steps,
+            interval_ms=args.interval,
+            seed=args.seed,
+            show_strength=args.strength,
+        )
+        print("ADJUSTABLE PLAYBACK - every value is an unmeasured assumption")
+        print(
+            f"starting from arm={controls.arm}; tau={controls.tau:.2f}; "
+            f"animals={controls.animals}; days={controls.days}; seed={controls.seed}"
+        )
+        print("opening the window; close it to return to the prompt", flush=True)
+        try:
+            play_live(controls, dpi=args.dpi)
+        except RuntimeError as error:
+            raise SystemExit(str(error)) from error
+        return 0
+
     parameters = SimulationParameters(n_animals=args.animals, days=args.days)
     result = simulate_group(args.arm, tau=tau, parameters=parameters, seed=args.seed)
     frames = animation_frames(result, steps_per_interaction=args.steps)

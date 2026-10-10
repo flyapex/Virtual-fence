@@ -19,6 +19,10 @@ and no release changes the fact that all model parameters are assumptions.
   so it is identifiable in the taskbar.
 - Animated playback of one group meeting the boundary, `vf-play` /
   `scripts/show_simulation.py`, with window, GIF and still-frame output.
+- `vf-play --live`: one field panel with live controls (arm, animals, days, tau,
+  learning rate, speed, strength bars, replay, pause, new seed, reset) that
+  re-simulate as you change them, plus `--strength` to start with the bars shown.
+  A headless machine gets a clear message instead of a silent no-op.
 - Per-day aggregation (`daily_summary`, `DaySummary`) in `metrics`, whose
   pulse rate uses the same animal-day denominator as the power module.
 - Console entry points: `vf-simulate`, `vf-power`, `vf-play`, `vf-inspect`.

@@ -52,7 +52,7 @@ Installing the package provides four commands, which also run from `scripts/`:
 | --- | --- | --- |
 | `vf-simulate` | `scripts/run_simulation.py` | One group, one arm: metrics, optionally a figure |
 | `vf-power` | `scripts/run_power_analysis.py` | Power grid over groups per arm and transfer assumptions |
-| `vf-play` | `scripts/show_simulation.py` | Animated playback of one group |
+| `vf-play` | `scripts/show_simulation.py` | Animated playback of one group, or `--live` to tune it as it runs |
 | `vf-inspect` | `scripts/inspect_datasets.py` | Candidate dataset metadata and local file inspection |
 
 ```powershell
@@ -134,6 +134,38 @@ and an escape is drawn as a single crossing because the model does not remove
 escaped animals from later interactions. The event history being drawn is the
 model's own. Exporting a GIF redraws every frame, so allow roughly a minute for
 a few hundred frames.
+
+## Tune it live
+
+`vf-play --live` opens one field panel with the controls beside it. Nothing on
+that panel is measured: every slider sets an assumption, and changing one
+re-simulates the group and restarts the playback, so you can watch what an
+assumption does instead of reading about it.
+
+![The adjustable playback window](docs/figures/live_window.png)
+
+```powershell
+vf-play --live                          # the whole control panel
+vf-play --live --animals 8 --days 5     # start from a bigger, longer group
+vf-play --live --strength               # start with the strength bars showing
+```
+
+| Control | Sets |
+| --- | --- |
+| arm | `conventional`, `simulation` or `mock_boundary` |
+| animals | group size, 1 to 12 |
+| days | training days to play, 1 to 7 |
+| tau (transfer) | how much pre-trained association transfers, simulation arm only |
+| learning rate | the Rescorla-Wagner alpha |
+| ms per frame | playback speed, 20 to 300 |
+| show strength | toggles the associative-strength bars |
+| Replay / Pause | restart from the first frame, or hold the current one |
+| New seed / Reset | re-run with the next seed, or return to the defaults |
+
+The seed is shown on the panel, so a run you liked can be reproduced exactly with
+`vf-play --seed <that number>`. Without a display the command explains that it
+cannot open a window and points at `--gif` and `--still` instead of failing
+silently.
 
 ## Known limitations
 

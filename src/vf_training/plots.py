@@ -91,7 +91,8 @@ def set_window_title(figure: Figure, default: str = "vf-sim-training") -> None:
     manager = getattr(figure.canvas, "manager", None)
     setter = getattr(manager, "set_window_title", None)
     if callable(setter):
-        setter(f"{default} - {figure.get_suptitle() or 'figure'}")
+        suptitle = figure.get_suptitle()
+        setter(f"{default} - {suptitle}" if suptitle else default)
 
 
 def _finish(plt: ModuleType, figure: Figure, target: Path, dpi: int, *, show: bool) -> Path:
