@@ -13,6 +13,9 @@ from typing import Literal
 
 Arm = Literal["conventional", "simulation", "mock_boundary"]
 
+#: The three study arms, in the order used for reporting and figures.
+ARM_NAMES: tuple[Arm, ...] = ("conventional", "simulation", "mock_boundary")
+
 
 @dataclass(frozen=True)
 class SimulationParameters:

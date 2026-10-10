@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from math import nan
+from statistics import fmean
 from typing import Iterable
 
 from .model import Interaction, SimulationResult
@@ -22,6 +23,27 @@ class AnimalDayMetric:
     audio_only_responses: int
     escapes: int
     success_ratio: float
+
+
+@dataclass(frozen=True)
+class DaySummary:
+    """Group-level aggregate for one training day, used by reports and figures.
+
+    Every field is a summary of simulated events, not an observation. The two
+    `mean_` fields average over that day's interactions, so they describe the
+    state at the moment each animal met the boundary, not a day-end state.
+    """
+
+    day: int
+    interactions: int
+    animal_days: int
+    pulses: int
+    audio_only_responses: int
+    escapes: int
+    pulses_per_animal_day: float
+    audio_only_response_ratio: float
+    mean_associative_strength_before: float
+    mean_response_probability: float
 
 
 def _events(source: SimulationResult | Iterable[Interaction]) -> tuple[Interaction, ...]:
@@ -53,6 +75,47 @@ def pulses_per_animal_per_day(
             )
         )
     return tuple(metrics)
+
+
+def daily_summary(
+    source: SimulationResult | Iterable[Interaction],
+) -> tuple[DaySummary, ...]:
+    """Aggregate a group's events by training day, ordered by day.
+
+    `pulses_per_animal_day` matches the group-level analysis unit used by the
+    power module, so a figure drawn from this summary and the printed pulse rate
+    describe the same quantity. Days without events are absent rather than zero.
+    """
+    daily: dict[int, list[Interaction]] = defaultdict(list)
+    for event in _events(source):
+        daily[event.day].append(event)
+
+    summaries: list[DaySummary] = []
+    for day in sorted(daily):
+        events = daily[day]
+        interactions = len(events)
+        animal_days = len({event.animal_id for event in events})
+        pulses = sum(event.pulse_delivered for event in events)
+        audio_only = sum(event.audio_only_response for event in events)
+        summaries.append(
+            DaySummary(
+                day=day,
+                interactions=interactions,
+                animal_days=animal_days,
+                pulses=pulses,
+                audio_only_responses=audio_only,
+                escapes=sum(event.escaped for event in events),
+                pulses_per_animal_day=pulses / animal_days if animal_days else nan,
+                audio_only_response_ratio=audio_only / interactions if interactions else nan,
+                mean_associative_strength_before=fmean(
+                    event.associative_strength_before for event in events
+                ),
+                mean_response_probability=fmean(
+                    event.response_probability for event in events
+                ),
+            )
+        )
+    return tuple(summaries)
 
 
 def success_ratio(source: SimulationResult | Iterable[Interaction]) -> float:
