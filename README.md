@@ -38,6 +38,12 @@ python scripts/run_simulation.py --arm simulation --tau 0.60 --seed 20261010
 python scripts/run_power_analysis.py --replications 500 --seed 20261010
 ```
 
+One line installs the project, the figures and the test runner together:
+
+```powershell
+python -m pip install -e ".[plots,dev]"
+```
+
 Use `--help` with either script for options. Results printed by these scripts
 are simulated outputs conditional on their assumptions, not experimental
 findings.
