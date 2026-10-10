@@ -19,7 +19,7 @@ from math import ceil, sin
 from pathlib import Path
 
 from .model import Interaction, SimulationResult
-from .plots import FORMATS, _pyplot
+from .plots import FORMATS, _pyplot, set_window_title
 
 CAUTION = (
     "SCHEMATIC PLAYBACK OF ASSUMED MODEL MECHANICS - no measured data, no real "
@@ -342,6 +342,7 @@ def animate_simulation(
         plt.close(figure)
         return save_path
 
+    set_window_title(figure, default="vf-sim-training playback")
     plt.show()  # blocks until the window is closed
     figure.clear()
     plt.close(figure)

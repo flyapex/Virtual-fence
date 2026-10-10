@@ -78,10 +78,22 @@ def _resolved(path: str | Path) -> Path:
     return target
 
 
+def set_window_title(figure, default: str = "vf-sim-training") -> None:
+    """Name a figure's window, so an open window is identifiable in the taskbar.
+
+    A no-op on the headless Agg canvas, which has no window.
+    """
+    manager = getattr(figure.canvas, "manager", None)
+    setter = getattr(manager, "set_window_title", None)
+    if callable(setter):
+        setter(f"{default} - {figure.get_suptitle() or 'figure'}")
+
+
 def _finish(plt, figure, target: Path, dpi: int, *, show: bool) -> Path:
     """Write the figure, optionally hold it open in a window, then release it."""
     figure.savefig(target, dpi=dpi)
     if show:
+        set_window_title(figure)
         plt.show()  # blocks until every window is closed
     figure.clear()
     plt.close(figure)

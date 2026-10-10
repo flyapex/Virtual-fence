@@ -43,10 +43,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--show",
         action="store_true",
-        help="With --plot, hold the figure open in a window; the command returns when you close it.",
+        help="With --plot, keep the figure open in a window; the command returns only when you close it.",
     )
     return parser.parse_args()
-
 
 def _figure_inputs(
     args: argparse.Namespace,
@@ -75,6 +74,8 @@ def main() -> None:
     args = parse_args()
     if args.compare_arms and not args.plot:
         raise SystemExit("--compare-arms only changes the figure; add --plot.")
+    if args.show and not args.plot:
+        raise SystemExit("--show only affects the figure; add --plot.")
     tau = args.tau if args.arm == "simulation" else 0.0
     parameters = SimulationParameters(n_animals=args.animals, days=args.days)
     result = simulate_group(args.arm, tau=tau, parameters=parameters, seed=args.seed)
@@ -90,13 +91,17 @@ def main() -> None:
     if args.plot:
         results, stem = _figure_inputs(args, parameters, result, tau)
         target = figure_path(args.outdir, stem, suffix=args.suffix)
+        if args.show:
+            print(
+                f"writing {target}, then opening a window "
+                "- close the window to return, Ctrl+C to abort",
+                flush=True,
+            )
         try:
             written = plot_simulation(results, path=target, dpi=args.dpi, show=args.show)
         except RuntimeError as error:
             raise SystemExit(str(error)) from error
-        if args.show:
-            print(f"figure was written to {written} before the window opened")
-        else:
+        if not args.show:
             print(f"figure written to {written}")
 
 

@@ -34,13 +34,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--show",
         action="store_true",
-        help="With --plot, hold the figure open in a window; the command returns when you close it.",
+        help="With --plot, keep the figure open in a window; the command returns only when you close it.",
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.show and not args.plot:
+        raise SystemExit("--show only affects the figure; add --plot.")
     results = power_grid(
         animals_per_group=args.animals_per_group,
         replications=args.replications,
@@ -56,13 +58,17 @@ def main() -> None:
     if args.plot:
         stem = f"power_grid_rep{args.replications}_seed{args.seed}"
         target = figure_path(args.outdir, stem, suffix=args.suffix)
+        if args.show:
+            print(
+                f"writing {target}, then opening a window "
+                "- close the window to return, Ctrl+C to abort",
+                flush=True,
+            )
         try:
             written = plot_power_grid(results, path=target, dpi=args.dpi, show=args.show)
         except RuntimeError as error:
             raise SystemExit(str(error)) from error
-        if args.show:
-            print(f"figure was written to {written} before the window opened")
-        else:
+        if not args.show:
             print(f"figure written to {written}")
 
 
